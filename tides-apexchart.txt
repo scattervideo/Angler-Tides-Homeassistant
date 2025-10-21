@@ -1,0 +1,65 @@
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Bridgeport Tide Forecast
+graph_span: 36h
+span:
+  start: hour
+  offset: "-12h"
+series:
+  - entity: sensor.bridgeport_tide_predictions
+    name: Tide Height
+    stroke_width: 2
+    color: "#03a9f4"
+    data_generator: |
+      if (!entity || !entity.attributes.predictions) return [];
+      return entity.attributes.predictions.map(p => {
+        return [new Date(p.t).getTime(), parseFloat(p.v)];
+      });
+apex_config:
+  chart:
+    pan:
+      enabled: true
+    zoom:
+      enabled: false
+    toolbar:
+      show: true
+  annotations:
+    xaxis:
+      - x: EVAL:new Date().getTime()
+        borderColor: "#ff4444"
+        borderWidth: 2
+        label:
+          text: Now
+          style:
+            color: "#fff"
+            background: "#ff4444"
+            fontSize: 12px
+  yaxis:
+    - title:
+        text: Height (ft)
+      labels:
+        formatter: |
+          EVAL:function (val) { return val.toFixed(1); }
+  xaxis:
+    type: datetime
+    labels:
+      formatter: |
+        EVAL:function (val, timestamp, opts) {
+          const date = new Date(timestamp);
+          let hours = date.getHours();
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // 0 → 12
+          const timeStr = hours + ' ' + ampm;
+          const day = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          const prev = opts.i > 0 ? new Date(opts.w.globals.seriesX[0][opts.i - 1]) : null;
+          const newDay = !prev || prev.getDate() !== date.getDate();
+          return newDay ? day + ' ' + timeStr : timeStr;
+        }
+    tickAmount: 9
+    tickPlacement: "on"
+  grid:
+    xaxis:
+      lines:
+        show: true

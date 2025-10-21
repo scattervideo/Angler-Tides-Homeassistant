@@ -1,0 +1,5 @@
+type: custom:button-card
+name: NOAA
+tap_action:
+  action: url
+  url_path: https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=8467150
