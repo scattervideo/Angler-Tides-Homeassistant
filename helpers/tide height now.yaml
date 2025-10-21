@@ -1,0 +1,16 @@
+{% set preds = state_attr('sensor.bridgeport_tide_predictions','predictions') %}
+          {% if preds %}
+            {% set now_ts = as_timestamp(now()) %}
+            {% set closest = namespace(diff=999999999, value=None) %}
+            {% for p in preds %}
+              {% set ts = as_timestamp(strptime(p.t, "%Y-%m-%d %H:%M")) %}
+              {% set diff = (ts - now_ts) | abs %}
+              {% if diff < closest.diff %}
+                {% set closest.diff = diff %}
+                {% set closest.value = p.v | float %}
+              {% endif %}
+            {% endfor %}
+            {{ closest.value | round(1) }}
+          {% else %}
+            unavailable
+          {% endif %}

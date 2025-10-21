@@ -1,0 +1,54 @@
+{% set preds = state_attr('sensor.bridgeport_tide_predictions','predictions') %}
+{% if preds %}
+  {% set nowt = now().timestamp() %}
+  {% set n = preds|count %}
+  {% set eps = 0.0001 %}
+  {% set ns = namespace(found=0, low_ts=0) %}
+
+  {# start searching at the first prediction after now #}
+  {% set start = 0 %}
+  {% for j in range(0, n) %}
+    {% if as_timestamp(preds[j].t) > nowt %}
+      {% set start = j %}
+      {% break %}
+    {% endif %}
+  {% endfor %}
+
+  {# scan for first local minimum after 'start' that is > now() #}
+  {% for i in range([start,1]|max, n-1) %}
+    {% set pv = preds[i-1].v|float %}
+    {% set cv = preds[i].v|float %}
+    {% set nv = preds[i+1].v|float %}
+    {% set ts = as_timestamp(preds[i].t) %}
+    {% set dv1 = cv - pv %}
+    {% set dv2 = nv - cv %}
+
+    {% if ts > nowt %}
+      {# clear trough: falling then rising #}
+      {% if dv1 < -eps and dv2 > eps %}
+        {% set ns.found = 1 %}
+        {% set ns.low_ts = ts | int %}
+        {% break %}
+      {% endif %}
+
+      {# plateau trough: allow equal neighbors, confirm by look-ahead #}
+      {% if (dv1 <= eps and dv2 >= -eps) and ns.found == 0 %}
+        {% for m in range(i+1, [i+6, n-1]|min) %}
+          {% set vm = preds[m].v|float %}
+          {% if vm - cv > eps %}
+            {% set ns.found = 1 %}
+            {% set ns.low_ts = ts | int %}
+            {% break %}
+          {% elif vm - cv < -eps %}
+            {% break %}
+          {% endif %}
+        {% endfor %}
+        {% if ns.found == 1 %}{% break %}{% endif %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {{ ns.low_ts | timestamp_custom("%a %b %d, %-I:%M %p") if ns.found == 1 else 'unknown' }}
+{% else %}
+  unknown
+{% endif %}

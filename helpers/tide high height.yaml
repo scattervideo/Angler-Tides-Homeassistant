@@ -1,0 +1,17 @@
+{% set preds = state_attr('sensor.bridgeport_tide_predictions','predictions') %}
+{% if preds %}
+  {% set nowt = now().timestamp() %}
+  {% set best = namespace(time=None, value=None) %}
+  {% for p in preds %}
+    {% set ts = as_timestamp(p.t) %}
+    {% if ts > nowt %}
+      {% if best.value is none or p.v | float > best.value %}
+        {% set best.time = ts %}
+        {% set best.value = p.v | float %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {{ best.value if best.value is not none else 'unknown' }}
+{% else %}
+  unknown
+{% endif %}

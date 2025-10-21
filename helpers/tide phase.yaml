@@ -1,0 +1,29 @@
+{% set preds = state_attr('sensor.bridgeport_tide_predictions','predictions') %}
+{% if not preds %}
+  unknown
+{% else %}
+  {% set nowt = now().timestamp() %}
+  {% set closest = namespace(prev=None, next=None) %}
+
+  {% for p in preds %}
+    {% set ts = as_timestamp(p.t) %}
+    {% if ts <= nowt %}
+      {% set closest.prev = {'time': ts, 'val': p.v|float} %}
+    {% elif ts > nowt and closest.next is none %}
+      {% set closest.next = {'time': ts, 'val': p.v|float} %}
+    {% endif %}
+  {% endfor %}
+
+  {% if closest.prev is none or closest.next is none %}
+    unknown
+  {% else %}
+    {% set slope = closest.next.val - closest.prev.val %}
+    {% if slope > 0 %}
+      rising
+    {% elif slope < 0 %}
+      falling
+    {% else %}
+      slack
+    {% endif %}
+  {% endif %}
+{% endif %}

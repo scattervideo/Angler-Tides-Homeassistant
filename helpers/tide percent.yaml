@@ -1,0 +1,43 @@
+{% set preds = state_attr('sensor.bridgeport_tide_predictions','predictions') %}
+{% if preds %}
+  {% set nowt = now().timestamp() %}
+  {% set n = preds|count %}
+  {% set eps = 0.0001 %}
+
+  {# --- Find last slack (before now) --- #}
+  {% set last_slack = namespace(ts=0) %}
+  {% for i in range(1, n-1) %}
+    {% set pv = preds[i-1].v|float %}
+    {% set cv = preds[i].v|float %}
+    {% set nv = preds[i+1].v|float %}
+    {% set ts = as_timestamp(preds[i].t) %}
+    {% if ts < nowt %}
+      {% if (cv > pv and cv > nv) or (cv < pv and cv < nv) %}
+        {% set last_slack.ts = ts %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {# --- Find next slack (after now) --- #}
+  {% set next_slack = namespace(ts=0) %}
+  {% for i in range(1, n-1) %}
+    {% set pv = preds[i-1].v|float %}
+    {% set cv = preds[i].v|float %}
+    {% set nv = preds[i+1].v|float %}
+    {% set ts = as_timestamp(preds[i].t) %}
+    {% if ts > nowt and next_slack.ts == 0 %}
+      {% if (cv > pv and cv > nv) or (cv < pv and cv < nv) %}
+        {% set next_slack.ts = ts %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {% if last_slack.ts > 0 and next_slack.ts > 0 %}
+    {% set percent = 100 * (nowt - last_slack.ts) / (next_slack.ts - last_slack.ts) %}
+    {{ percent | round(1) }}
+  {% else %}
+    0
+  {% endif %}
+{% else %}
+  0
+{% endif %}

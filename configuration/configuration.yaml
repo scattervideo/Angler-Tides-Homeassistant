@@ -1,0 +1,22 @@
+sensor:
+- platform: rest
+  name: Bridgeport Tide Predictions
+  resource_template: >-
+    https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=homeassistant&begin_date={{ (as_timestamp(now()) - 5*86400) | timestamp_custom('%Y%m%d') }}&range=240&datum=MLLW&station=8467150&time_zone=lst_ldt&units=english&format=json
+  method: GET
+  scan_interval: 86400
+  value_template: >
+    {% if value_json is defined and value_json.predictions is defined %}
+      {{ value_json.predictions | count }}
+    {% else %}
+      API Error
+    {% endif %}
+  json_attributes:
+    - predictions
+
+
+
+recorder:
+  exclude:
+    entities:
+      - sensor.bridgeport_tide_predictions
