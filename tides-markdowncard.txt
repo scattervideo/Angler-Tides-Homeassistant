@@ -1,5 +1,0 @@
-type: markdown
-content: |2
-    **🟠 Orange**  unusually high (>7.2 ft) or low (< 0.2 ft)  
-    **🔴 Red** below chart datum 
-    **🔵 Blue accents** normal tide height
